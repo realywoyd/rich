@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>1 млрд</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -12,19 +12,30 @@
       --bg2:#ffffff;
       --ink:#2c3e50;
       --ink-soft:rgba(44,62,80,0.55);
-
       --shadow-footer: 0 18px 40px rgba(0,0,0,0.16);
     }
 
     *{ margin:0; padding:0; box-sizing:border-box; }
 
+    /* ✅ убираем “правый скролл” и дерганье ширины */
+    html, body{
+      width:100%;
+      height:100%;
+      overflow:hidden; /* ключевое */
+      overscroll-behavior:none;
+      -webkit-overflow-scrolling:touch;
+    }
     body{
       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
       background:linear-gradient(180deg,var(--bg1) 0%,var(--bg2) 100%);
-      min-height:100vh;
       padding:20px;
       overflow-x:hidden;
+      position:relative;
+      touch-action:manipulation;
     }
+
+    /* прячем scrollbar (на всякий) */
+    ::-webkit-scrollbar{ width:0; height:0; }
 
     /* --- Слой снежинок (фон) --- */
     .snow-layer{
@@ -157,42 +168,33 @@
       object-fit:contain;
       pointer-events:none;
     }
+
+    /* desktop/tablet */
     .float-icon.money{ left:22%; top:54px; }
     .float-icon.pencil{ left:18%; top:146px; }
     .float-icon.battery{ right:18%; top:104px; }
-
-    @media (max-width:480px){
-      .float-icon{ width:70px; height:70px; }
-      .float-icon.money{ left:22%; top:54px; }
-      .float-icon.pencil{ left:18%; top:146px; }
-      .float-icon.battery{ right:18%; top:104px; }
-    }
 
     /* --- Стопка купюр --- */
     .bill-area{
       display:flex;
       justify-content:center;
-      margin:30px 0 10px;
-      padding:0 20px;
-      margin-bottom:140px; /* чтобы не залезало под футер */
+      margin:24px 0 0;
+      padding:0 10px;
+      margin-bottom:140px;
     }
 
-    /* ВАЖНО: это только "якорь" для жестов. Никаких фонов/рамок */
     .bill-stack{
       width:min(300px, 82vw);
       aspect-ratio: 0.63 / 1;
       position:relative;
-
       background:transparent;
       box-shadow:none;
       border-radius:0;
-
-      overflow:visible;   /* ✅ улёт за пределы */
+      overflow:visible;
       touch-action:none;
       user-select:none;
     }
 
-    /* задние листы (картинки) */
     .bill-sheet{
       position:absolute;
       inset:0;
@@ -209,16 +211,13 @@
       object-fit:contain;
     }
 
-    /* верхняя купюра */
     .bill-top{
       position:absolute;
       inset:0;
       z-index:3;
-
       background:transparent;
       box-shadow:none;
       border-radius:0;
-
       will-change:transform;
       transform:translate3d(0,0,0) rotate(0deg);
       transition:transform 180ms ease-out;
@@ -227,7 +226,7 @@
       width:100%;
       height:100%;
       display:block;
-      object-fit:contain; /* ✅ без обрезки */
+      object-fit:contain;
       pointer-events:none;
       user-select:none;
     }
@@ -235,11 +234,8 @@
       transition:none;
       cursor:grabbing;
     }
-
     .bill-fly{
-      transition:
-        transform 520ms cubic-bezier(.14,.9,.2,1),
-        opacity 520ms ease;
+      transition:transform 520ms cubic-bezier(.14,.9,.2,1), opacity 520ms ease;
       opacity:0;
     }
 
@@ -301,6 +297,34 @@
       pointer-events:none;
       z-index:2;
     }
+
+    /* ✅ Mobile tuning */
+    @media (max-width:480px){
+      body{ padding:12px; }
+
+      .main-badge{ margin:28px auto 6px; gap:14px; }
+      .badge-icon{ width:66px; height:66px; font-size:40px; border-radius:16px; }
+      .badge-text{ font-size:50px; }
+
+      .floating-icons{ height:235px; margin-top:14px; }
+      .float-icon{ width:70px; height:70px; }
+
+      /* ✅ ближе к краям ("стенкам") */
+      .float-icon.money{ left:10%; top:44px; }
+      .float-icon.pencil{ left:8%; top:136px; }
+      .float-icon.battery{ right:8%; top:92px; }
+
+      .bill-area{ margin-top:14px; margin-bottom:132px; }
+
+      .bottom-bar{
+        bottom:14px;
+        width:calc(100% - 24px);
+        height:82px;
+        border-radius:26px;
+        padding:0 18px;
+      }
+      .nav-btn{ width:60px; height:60px; }
+    }
   </style>
 </head>
 
@@ -333,7 +357,6 @@
 
     <section class="bill-area">
       <div class="bill-stack" id="stack" aria-label="Стопка купюр">
-        <!-- Задние листы: та же купюра, но чуть смещены -->
         <div class="bill-sheet" style="--x:10px; --y:10px; --op:0.14;">
           <img src="./assets/bill_1.png" alt="" draggable="false">
         </div>
@@ -350,7 +373,6 @@
           <img src="./assets/bill_1.png" alt="" draggable="false">
         </div>
 
-        <!-- Верхняя (перетаскиваемая) -->
         <div class="bill-top" id="topBill" aria-label="Купюра">
           <img src="./assets/bill_1.png" alt="Купюра" draggable="false">
         </div>
@@ -358,7 +380,6 @@
     </section>
   </div>
 
-  <!-- Нижняя панель: trophy -> store -> calendar -> home -->
   <footer class="bottom-bar" id="bottomBar">
     <button class="nav-btn" data-nav="trophy" aria-label="Трофеи">
       <img src="./assets/nav_trophy.png" alt="Трофеи" />
@@ -379,13 +400,19 @@
   </footer>
 
   <script>
-    // --- Telegram WebApp init (с безопасными фолбэками для браузера) ---
+    // --- Telegram WebApp init ---
     const tg = window.Telegram?.WebApp;
 
     try {
       tg?.expand?.();
       tg?.enableClosingConfirmation?.();
       document.body.style.backgroundColor = tg?.themeParams?.bg_color || '#e8f4f8';
+
+      // ✅ УБИРАЕМ кнопку "Продолжить"
+      if (tg?.MainButton) {
+        tg.MainButton.hide();
+        tg.MainButton.offClick?.();
+      }
     } catch (_) {}
 
     // --- Гирлянда ---
@@ -451,7 +478,7 @@
       handleClick(item.dataset.action);
     });
 
-    // --- Откидывание купюры (мышь + палец) — с выходом за рамки ---
+    // --- Откидывание купюры ---
     const stackEl = document.getElementById('stack');
     let topBillEl = document.getElementById('topBill');
 
@@ -480,9 +507,7 @@
     }
 
     function shouldFling(dy, vy) {
-      const pulledUpEnough = dy < -110;
-      const fastUp = vy < -0.9;
-      return pulledUpEnough || fastUp;
+      return (dy < -110) || (vy < -0.9);
     }
 
     function spawnNewTop(behindEl) {
@@ -513,7 +538,6 @@
       const onEnd = () => {
         el.removeEventListener('transitionend', onEnd);
         el.remove();
-
         stackEl.animate(
           [{ transform:'translateY(0)' },{ transform:'translateY(2px)' },{ transform:'translateY(0)' }],
           { duration:180, easing:'ease-out' }
@@ -552,7 +576,6 @@
       const dx = e.clientX - state.startX;
       const dyRaw = e.clientY - state.startY;
 
-      // вниз чуть-чуть можно, вверх — сколько угодно
       const dy = Math.min(40, dyRaw);
 
       state.vx = (e.clientX - state.lastX) / dt;
@@ -619,15 +642,6 @@
     }
     updateTime();
     setInterval(updateTime, 1000 * 20);
-
-    // --- Главная кнопка Telegram ---
-    try{
-      if (tg?.MainButton){
-        tg.MainButton.text = "Продолжить";
-        tg.MainButton.show();
-        tg.MainButton.onClick(() => tg.showAlert?.("Отлично! Приложение работает!"));
-      }
-    }catch(_){}
   </script>
 </body>
 </html>
