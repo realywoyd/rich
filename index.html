@@ -72,28 +72,6 @@
       to  { transform:rotate(360deg); }
     }
 
-    /* --- Гирлянда --- */
-    .decorative-lights{
-      position:fixed;
-      top:0; left:0; right:0;
-      height:60px;
-      display:flex;
-      justify-content:space-around;
-      padding:10px;
-      z-index:1;
-      pointer-events:none;
-    }
-    .light{
-      width:12px;
-      height:12px;
-      border-radius:50%;
-      animation:twinkle 2s infinite;
-    }
-    @keyframes twinkle{
-      0%,100%{ opacity:0.6; }
-      50%{ opacity:1; }
-    }
-
     /* --- Контент --- */
     .container{
       max-width:600px;
@@ -270,7 +248,7 @@
       -webkit-tap-highlight-color:transparent;
     }
     .nav-btn img{
-      width:60px;
+      width:44px;
       height:90px;
       object-fit:contain;
       opacity:0.70;
