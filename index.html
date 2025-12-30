@@ -248,12 +248,14 @@
       -webkit-tap-highlight-color:transparent;
     }
     .nav-btn img{
-      width:100px;
-      height:60px;
-      object-fit:contain;
-      opacity:0.70;
-      filter:grayscale(1);
-    }
+  width:100px;
+  height:60px;
+  object-fit:contain;
+  opacity:0.70;
+  filter:grayscale(1);
+
+  transform: translateX(-6px); /* ← сдвиг влево, подстрой -4..-10 */
+}
     .nav-btn:active img{
       transform:translateY(1px);
       opacity:0.9;
