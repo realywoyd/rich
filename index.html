@@ -310,9 +310,9 @@
       .float-icon{ width:70px; height:70px; }
 
       /* ✅ ближе к краям ("стенкам") */
-      .float-icon.money{ left:10%; top:44px; }
-      .float-icon.pencil{ left:8%; top:136px; }
-      .float-icon.battery{ right:8%; top:92px; }
+      .float-icon.money{ left:20%; top:44px; }
+      .float-icon.pencil{ left:20%; top:136px; }
+      .float-icon.battery{ right:20%; top:92px; }
 
       .bill-area{ margin-top:14px; margin-bottom:132px; }
 
@@ -382,20 +382,19 @@
 
   <footer class="bottom-bar" id="bottomBar">
     <button class="nav-btn" data-nav="trophy" aria-label="Трофеи">
-      <img src="./assets/nav_trophy.png" alt="Трофеи" />
+     <img src="./assets/nav_home.png" alt="Домой" />
     </button>
 
     <button class="nav-btn" data-nav="store" aria-label="Магазин">
-      <img src="./assets/nav_shop.png" alt="Магазин" />
-    </button>
-
-    <button class="nav-btn" data-nav="calendar" aria-label="Календарь">
-      <span class="time-badge" id="timeBadge">00:00</span>
       <img src="./assets/nav_calendar.png" alt="Календарь" />
     </button>
 
+    <button class="nav-btn" data-nav="calendar" aria-label="Календарь">
+       <img src="./assets/nav_shop.png" alt="Магазин" />
+    </button>
+
     <button class="nav-btn" data-nav="home" aria-label="Домой">
-      <img src="./assets/nav_home.png" alt="Домой" />
+      <img src="./assets/nav_trophy.png" alt="Трофеи" />
     </button>
   </footer>
 
@@ -616,9 +615,9 @@
       try { tg?.HapticFeedback?.impactOccurred?.('light'); } catch (_) {}
 
       const messages = {
-        trophy: 'Ваши достижения 🏆',
-        store: 'Магазин 🏪',
-        calendar: 'Календарь событий 📅',
+        trophy: 'Главная страница 🏠',
+        store: 'Календарь событий 📅',
+        calendar: 'Магазин 🏪',
         home: 'Главная страница 🏠'
       };
 
@@ -632,16 +631,6 @@
       handleNav(btn.dataset.nav);
     });
 
-    // --- Время на календаре ---
-    function pad2(n){ return String(n).padStart(2,'0'); }
-    function updateTime(){
-      const d = new Date();
-      const t = pad2(d.getHours()) + ":" + pad2(d.getMinutes());
-      const el = document.getElementById('timeBadge');
-      if (el) el.textContent = t;
-    }
-    updateTime();
-    setInterval(updateTime, 1000 * 20);
   </script>
 </body>
 </html>
