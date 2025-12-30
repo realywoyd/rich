@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1 млрд</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    :root{
+      --bg1:#e8f4f8;
+      --bg2:#ffffff;
+      --ink:#2c3e50;
+      --ink-soft:rgba(44,62,80,0.55);
+
+      --shadow-footer: 0 18px 40px rgba(0,0,0,0.16);
+    }
+
+    *{ margin:0; padding:0; box-sizing:border-box; }
+
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      background:linear-gradient(180deg,var(--bg1) 0%,var(--bg2) 100%);
+      min-height:100vh;
+      padding:20px;
+      overflow-x:hidden;
+    }
+
+    /* --- Слой снежинок (фон) --- */
+    .snow-layer{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:0;
+      overflow:hidden;
+    }
+    .snowflake{
+      position:absolute;
+      top:-60px;
+      left:0;
+      width:var(--size,36px);
+      height:var(--size,36px);
+      opacity:var(--opacity,0.8);
+      filter:drop-shadow(0 2px 2px rgba(0,0,0,0.08));
+      will-change:transform;
+      animation:snow-fall var(--dur,14s) linear var(--delay,0s) infinite;
+    }
+    .snowflake > img{
+      width:100%;
+      height:100%;
+      display:block;
+      transform-origin:50% 50%;
+      animation:snow-rotate var(--spin,10s) linear var(--delay,0s) infinite;
+    }
+    @keyframes snow-fall{
+      from{ transform:translateY(-60px); }
+      to  { transform:translateY(110vh); }
+    }
+    @keyframes snow-rotate{
+      from{ transform:rotate(0deg); }
+      to  { transform:rotate(360deg); }
+    }
+
+    /* --- Гирлянда --- */
+    .decorative-lights{
+      position:fixed;
+      top:0; left:0; right:0;
+      height:60px;
+      display:flex;
+      justify-content:space-around;
+      padding:10px;
+      z-index:1;
+      pointer-events:none;
+    }
+    .light{
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      animation:twinkle 2s infinite;
+    }
+    @keyframes twinkle{
+      0%,100%{ opacity:0.6; }
+      50%{ opacity:1; }
+    }
+
+    /* --- Контент --- */
+    .container{
+      max-width:600px;
+      margin:0 auto;
+      position:relative;
+      z-index:2;
+    }
+
+    .header{
+      width:100%;
+      text-align:center;
+      margin-top:6px;
+    }
+
+    .main-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:16px;
+      margin:34px auto 6px;
+    }
+    .badge-icon{
+      width:72px;
+      height:72px;
+      background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%);
+      border-radius:18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:42px;
+      font-weight:800;
+      color:#fff;
+      box-shadow:0 14px 26px rgba(0,0,0,0.18);
+    }
+    .badge-text{
+      font-size:54px;
+      font-weight:900;
+      color:var(--ink);
+      letter-spacing:1px;
+      line-height:1;
+    }
+    .online-status{
+      font-size:13px;
+      color:var(--ink-soft);
+      margin-bottom:10px;
+    }
+
+    /* --- Иконки главного экрана --- */
+    .floating-icons{
+      position:relative;
+      width:100%;
+      height:260px;
+      margin-top:18px;
+    }
+    .float-icon{
+      position:absolute;
+      width:76px;
+      height:76px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      user-select:none;
+      -webkit-tap-highlight-color:transparent;
+      transition:transform 0.15s ease;
+      filter:drop-shadow(0 10px 14px rgba(0,0,0,0.14));
+    }
+    .float-icon:active{ transform:scale(0.94); }
+    .float-icon img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      pointer-events:none;
+    }
+    .float-icon.money{ left:22%; top:54px; }
+    .float-icon.pencil{ left:18%; top:146px; }
+    .float-icon.battery{ right:18%; top:104px; }
+
+    @media (max-width:480px){
+      .float-icon{ width:70px; height:70px; }
+      .float-icon.money{ left:22%; top:54px; }
+      .float-icon.pencil{ left:18%; top:146px; }
+      .float-icon.battery{ right:18%; top:104px; }
+    }
+
+    /* --- Стопка купюр --- */
+    .bill-area{
+      display:flex;
+      justify-content:center;
+      margin:30px 0 10px;
+      padding:0 20px;
+      margin-bottom:140px; /* чтобы не залезало под футер */
+    }
+
+    /* ВАЖНО: это только "якорь" для жестов. Никаких фонов/рамок */
+    .bill-stack{
+      width:min(300px, 82vw);
+      aspect-ratio: 0.63 / 1;
+      position:relative;
+
+      background:transparent;
+      box-shadow:none;
+      border-radius:0;
+
+      overflow:visible;   /* ✅ улёт за пределы */
+      touch-action:none;
+      user-select:none;
+    }
+
+    /* задние листы (картинки) */
+    .bill-sheet{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:1;
+      transform: translate(var(--x, 0px), var(--y, 0px));
+      opacity: var(--op, 0.18);
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.10));
+    }
+    .bill-sheet img{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit:contain;
+    }
+
+    /* верхняя купюра */
+    .bill-top{
+      position:absolute;
+      inset:0;
+      z-index:3;
+
+      background:transparent;
+      box-shadow:none;
+      border-radius:0;
+
+      will-change:transform;
+      transform:translate3d(0,0,0) rotate(0deg);
+      transition:transform 180ms ease-out;
+    }
+    .bill-top img{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit:contain; /* ✅ без обрезки */
+      pointer-events:none;
+      user-select:none;
+    }
+    .bill-top.dragging{
+      transition:none;
+      cursor:grabbing;
+    }
+
+    .bill-fly{
+      transition:
+        transform 520ms cubic-bezier(.14,.9,.2,1),
+        opacity 520ms ease;
+      opacity:0;
+    }
+
+    /* --- Нижняя панель (капсула) --- */
+    .bottom-bar{
+      position:fixed;
+      left:50%;
+      transform:translateX(-50%);
+      bottom:18px;
+      width:min(720px, calc(100% - 44px));
+      height:86px;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:space-around;
+      padding:0 26px;
+      padding-bottom:env(safe-area-inset-bottom, 0px);
+      box-shadow:var(--shadow-footer);
+      border-radius:28px;
+      z-index:50;
+    }
+    .nav-btn{
+      position:relative;
+      width:64px;
+      height:64px;
+      border:0;
+      background:transparent;
+      padding:0;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .nav-btn img{
+      width:80px;
+      height:44px;
+      object-fit:contain;
+      opacity:0.70;
+      filter:grayscale(1);
+    }
+    .nav-btn:active img{
+      transform:translateY(1px);
+      opacity:0.9;
+    }
+
+    .time-badge{
+      position:absolute;
+      top:4px;
+      left:50%;
+      transform:translateX(-50%);
+      font-size:12px;
+      font-weight:800;
+      color:#fff;
+      background:rgba(44,62,80,0.85);
+      padding:2px 7px;
+      border-radius:7px;
+      line-height:1.2;
+      box-shadow:0 10px 18px rgba(0,0,0,0.16);
+      pointer-events:none;
+      z-index:2;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="snow-layer" id="snow"></div>
+  <div class="decorative-lights" id="lights"></div>
+
+  <div class="container">
+    <header class="header">
+      <div class="main-badge">
+        <div class="badge-icon">1</div>
+        <div class="badge-text">млрд</div>
+      </div>
+      <div class="online-status">Онлайн: 1</div>
+    </header>
+
+    <section class="floating-icons" aria-label="Иконки">
+      <div class="float-icon money" data-action="money" aria-label="Деньги">
+        <img src="./assets/icon_money.png" alt="money" />
+      </div>
+
+      <div class="float-icon pencil" data-action="pencil" aria-label="План">
+        <img src="./assets/icon_pencil.png" alt="pencil" />
+      </div>
+
+      <div class="float-icon battery" data-action="battery" aria-label="Энергия">
+        <img src="./assets/icon_battery.png" alt="battery" />
+      </div>
+    </section>
+
+    <section class="bill-area">
+      <div class="bill-stack" id="stack" aria-label="Стопка купюр">
+        <!-- Задние листы: та же купюра, но чуть смещены -->
+        <div class="bill-sheet" style="--x:10px; --y:10px; --op:0.14;">
+          <img src="./assets/bill_1.png" alt="" draggable="false">
+        </div>
+        <div class="bill-sheet" style="--x:8px; --y:8px; --op:0.16;">
+          <img src="./assets/bill_1.png" alt="" draggable="false">
+        </div>
+        <div class="bill-sheet" style="--x:6px; --y:6px; --op:0.18;">
+          <img src="./assets/bill_1.png" alt="" draggable="false">
+        </div>
+        <div class="bill-sheet" style="--x:4px; --y:4px; --op:0.20;">
+          <img src="./assets/bill_1.png" alt="" draggable="false">
+        </div>
+        <div class="bill-sheet" style="--x:2px; --y:2px; --op:0.22;">
+          <img src="./assets/bill_1.png" alt="" draggable="false">
+        </div>
+
+        <!-- Верхняя (перетаскиваемая) -->
+        <div class="bill-top" id="topBill" aria-label="Купюра">
+          <img src="./assets/bill_1.png" alt="Купюра" draggable="false">
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Нижняя панель: trophy -> store -> calendar -> home -->
+  <footer class="bottom-bar" id="bottomBar">
+    <button class="nav-btn" data-nav="trophy" aria-label="Трофеи">
+      <img src="./assets/nav_trophy.png" alt="Трофеи" />
+    </button>
+
+    <button class="nav-btn" data-nav="store" aria-label="Магазин">
+      <img src="./assets/nav_shop.png" alt="Магазин" />
+    </button>
+
+    <button class="nav-btn" data-nav="calendar" aria-label="Календарь">
+      <span class="time-badge" id="timeBadge">00:00</span>
+      <img src="./assets/nav_calendar.png" alt="Календарь" />
+    </button>
+
+    <button class="nav-btn" data-nav="home" aria-label="Домой">
+      <img src="./assets/nav_home.png" alt="Домой" />
+    </button>
+  </footer>
+
+  <script>
+    // --- Telegram WebApp init (с безопасными фолбэками для браузера) ---
+    const tg = window.Telegram?.WebApp;
+
+    try {
+      tg?.expand?.();
+      tg?.enableClosingConfirmation?.();
+      document.body.style.backgroundColor = tg?.themeParams?.bg_color || '#e8f4f8';
+    } catch (_) {}
+
+    // --- Гирлянда ---
+    const colors = ['#ff6b6b','#4ecdc4','#45b7d1','#96ceb4','#ffeaa7','#dfe6e9','#a29bfe','#fd79a8'];
+    const lightsContainer = document.getElementById('lights');
+    for (let i = 0; i < 30; i++) {
+      const light = document.createElement('div');
+      light.className = 'light';
+      light.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      light.style.animationDelay = `${Math.random() * 2}s`;
+      lightsContainer.appendChild(light);
+    }
+
+    // --- Снежинки (строго вниз + вращение вокруг оси) ---
+    const snowLayer = document.getElementById('snow');
+    const SNOW_COUNT = 14;
+
+    for (let i = 0; i < SNOW_COUNT; i++) {
+      const wrap = document.createElement('div');
+      wrap.className = 'snowflake';
+
+      const img = document.createElement('img');
+      img.alt = 'snow';
+      img.decoding = 'async';
+      img.loading = 'lazy';
+      img.src = './assets/snowflake.png';
+
+      const size = 18 + Math.random() * 52;
+      const x = Math.random() * 100;
+      const dur = 10 + Math.random() * 16;
+      const delay = Math.random() * 8;
+      const spin = 6 + Math.random() * 10;
+      const opacity = 0.45 + Math.random() * 0.45;
+
+      wrap.style.left = `${x}vw`;
+      wrap.style.setProperty('--size', `${size}px`);
+      wrap.style.setProperty('--dur', `${dur}s`);
+      wrap.style.setProperty('--delay', `${delay}s`);
+      wrap.style.setProperty('--spin', `${spin}s`);
+      wrap.style.setProperty('--opacity', `${opacity}`);
+
+      wrap.appendChild(img);
+      snowLayer.appendChild(wrap);
+    }
+
+    // --- Иконки главного экрана ---
+    function handleClick(action){
+      try { tg?.HapticFeedback?.impactOccurred?.('medium'); } catch (_) {}
+
+      const messages = {
+        money: 'Открываем раздел с деньгами 💵',
+        pencil: 'Режим редактирования ✏️',
+        battery: 'Энергия ⚡'
+      };
+
+      if (tg?.showAlert) tg.showAlert(messages[action] || action);
+      else console.log(messages[action] || action);
+    }
+
+    document.querySelector('.floating-icons')?.addEventListener('click', (e) => {
+      const item = e.target.closest('.float-icon');
+      if (!item) return;
+      handleClick(item.dataset.action);
+    });
+
+    // --- Откидывание купюры (мышь + палец) — с выходом за рамки ---
+    const stackEl = document.getElementById('stack');
+    let topBillEl = document.getElementById('topBill');
+
+    const state = {
+      active: false,
+      pointerId: null,
+      startX: 0,
+      startY: 0,
+      lastX: 0,
+      lastY: 0,
+      lastT: 0,
+      startT: 0,
+      vx: 0,
+      vy: 0
+    };
+
+    function setTransform(el, dx, dy) {
+      const rot = Math.max(-18, Math.min(18, dx * 0.06));
+      el.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rot}deg)`;
+    }
+
+    function resetTop(el) {
+      el.classList.remove('bill-fly', 'dragging');
+      el.style.opacity = '1';
+      el.style.transform = 'translate3d(0,0,0) rotate(0deg)';
+    }
+
+    function shouldFling(dy, vy) {
+      const pulledUpEnough = dy < -110;
+      const fastUp = vy < -0.9;
+      return pulledUpEnough || fastUp;
+    }
+
+    function spawnNewTop(behindEl) {
+      const newTop = behindEl.cloneNode(true);
+      newTop.id = 'topBill';
+      resetTop(newTop);
+      stackEl.insertBefore(newTop, behindEl);
+      topBillEl = newTop;
+    }
+
+    function flingBill(el, dx, vy) {
+      try { tg?.HapticFeedback?.impactOccurred?.('light'); } catch (_) {}
+
+      spawnNewTop(el);
+
+      const side = dx === 0 ? (Math.random() > 0.5 ? 1 : -1) : Math.sign(dx);
+      const x = side * (70 + Math.random() * 120);
+
+      const speedBoost = Math.min(1.6, Math.max(0.9, Math.abs(vy) * 1.4));
+      const y = -(window.innerHeight * (0.85 * speedBoost) + 120);
+
+      const rot = side * (18 + Math.random() * 12);
+
+      el.classList.add('bill-fly');
+      el.style.opacity = '0';
+      el.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(${rot}deg)`;
+
+      const onEnd = () => {
+        el.removeEventListener('transitionend', onEnd);
+        el.remove();
+
+        stackEl.animate(
+          [{ transform:'translateY(0)' },{ transform:'translateY(2px)' },{ transform:'translateY(0)' }],
+          { duration:180, easing:'ease-out' }
+        );
+      };
+      el.addEventListener('transitionend', onEnd);
+    }
+
+    function onPointerDown(e) {
+      if (!topBillEl) return;
+
+      state.active = true;
+      state.pointerId = e.pointerId;
+
+      state.startX = e.clientX;
+      state.startY = e.clientY;
+      state.lastX = e.clientX;
+      state.lastY = e.clientY;
+
+      const t = performance.now();
+      state.startT = t;
+      state.lastT = t;
+      state.vx = 0;
+      state.vy = 0;
+
+      topBillEl.classList.add('dragging');
+      try { topBillEl.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+
+    function onPointerMove(e) {
+      if (!state.active || e.pointerId !== state.pointerId) return;
+
+      const now = performance.now();
+      const dt = Math.max(8, now - state.lastT);
+
+      const dx = e.clientX - state.startX;
+      const dyRaw = e.clientY - state.startY;
+
+      // вниз чуть-чуть можно, вверх — сколько угодно
+      const dy = Math.min(40, dyRaw);
+
+      state.vx = (e.clientX - state.lastX) / dt;
+      state.vy = (e.clientY - state.lastY) / dt;
+
+      state.lastX = e.clientX;
+      state.lastY = e.clientY;
+      state.lastT = now;
+
+      setTransform(topBillEl, dx, dy);
+    }
+
+    function endPointer(e) {
+      if (!state.active || e.pointerId !== state.pointerId) return;
+      state.active = false;
+
+      const dx = state.lastX - state.startX;
+      const dy = state.lastY - state.startY;
+      const vy = state.vy;
+
+      topBillEl.classList.remove('dragging');
+
+      if (shouldFling(dy, vy)) {
+        flingBill(topBillEl, dx, vy);
+      } else {
+        try { tg?.HapticFeedback?.impactOccurred?.('soft'); } catch (_) {}
+        resetTop(topBillEl);
+      }
+    }
+
+    stackEl?.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', endPointer);
+    window.addEventListener('pointercancel', endPointer);
+
+    // --- Навигация нижней панели ---
+    function handleNav(section){
+      try { tg?.HapticFeedback?.impactOccurred?.('light'); } catch (_) {}
+
+      const messages = {
+        trophy: 'Ваши достижения 🏆',
+        store: 'Магазин 🏪',
+        calendar: 'Календарь событий 📅',
+        home: 'Главная страница 🏠'
+      };
+
+      if (tg?.showAlert) tg.showAlert(messages[section] || section);
+      else console.log(messages[section] || section);
+    }
+
+    document.getElementById('bottomBar')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('.nav-btn');
+      if (!btn) return;
+      handleNav(btn.dataset.nav);
+    });
+
+    // --- Время на календаре ---
+    function pad2(n){ return String(n).padStart(2,'0'); }
+    function updateTime(){
+      const d = new Date();
+      const t = pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+      const el = document.getElementById('timeBadge');
+      if (el) el.textContent = t;
+    }
+    updateTime();
+    setInterval(updateTime, 1000 * 20);
+
+    // --- Главная кнопка Telegram ---
+    try{
+      if (tg?.MainButton){
+        tg.MainButton.text = "Продолжить";
+        tg.MainButton.show();
+        tg.MainButton.onClick(() => tg.showAlert?.("Отлично! Приложение работает!"));
+      }
+    }catch(_){}
+  </script>
+</body>
+</html>
